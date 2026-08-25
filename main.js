@@ -444,6 +444,7 @@ function hideSiteLoginModal() {
 }
 
 let MAINTENANCE_MODE = false;
+let MAINTENANCE_MESSAGE = 'Check back soon.';
 
 (async function loadSiteConfig() {
   try {
@@ -451,6 +452,7 @@ let MAINTENANCE_MODE = false;
     if (doc.exists) {
       const d = doc.data();
       if (typeof d.maintenanceMode === 'boolean') MAINTENANCE_MODE = d.maintenanceMode;
+      if (d.maintenanceMessage) MAINTENANCE_MESSAGE = String(d.maintenanceMessage);
     }
   } catch (_) {}
 })();
@@ -468,7 +470,7 @@ function siteLoginSubmit() {
   }
 
   if (MAINTENANCE_MODE && !isProtectedUsername(username) && getUserRole(username) !== 'owner') {
-    setSiteLoginError('The site is currently under maintenance. Check back soon.');
+    setSiteLoginError(`The site is currently under maintenance. ${MAINTENANCE_MESSAGE}`);
     return;
   }
 
@@ -7931,6 +7933,8 @@ loadAdminImpersonationVisibility();
 loadAdminCasinoGameSettings();
 const bridgeInput = document.getElementById('admin-bridge-url-input');
 if (bridgeInput) bridgeInput.value = BRIDGE_URL || '';
+const maintMsgInput = document.getElementById('admin-maintenance-message');
+if (maintMsgInput) maintMsgInput.value = MAINTENANCE_MESSAGE || '';
 const maintStatus = document.getElementById('admin-maintenance-status');
 if (maintStatus) maintStatus.textContent = MAINTENANCE_MODE ? '🔴 Maintenance is ON — only owners can log in.' : '🟢 Maintenance is OFF — site is open.';
 document.getElementById('admin-menu').style.display = 'flex';
@@ -24058,9 +24062,12 @@ preview.innerHTML = `<div style="display:grid; gap:0.55rem;"><div style="font-we
 async function adminSetMaintenance(enabled) {
 if (!canUseAdminPermission('manageSettings') || getUserRole(currentChatUser) !== 'owner') return;
 const status = document.getElementById('admin-maintenance-status');
+const msgInput = document.getElementById('admin-maintenance-message');
+const msg = String(msgInput && msgInput.value.trim() ? msgInput.value.trim() : MAINTENANCE_MESSAGE);
 try {
-  await getAdminDb().collection('site_config').doc('settings').set({ maintenanceMode: enabled }, { merge: true });
+  await getAdminDb().collection('site_config').doc('settings').set({ maintenanceMode: enabled, maintenanceMessage: msg }, { merge: true });
   MAINTENANCE_MODE = enabled;
+  MAINTENANCE_MESSAGE = msg;
   if (status) status.textContent = enabled ? '🔴 Maintenance is ON — only owners can log in.' : '🟢 Maintenance is OFF — site is open.';
 } catch (err) {
   if (status) status.textContent = `Error: ${err.message}`;

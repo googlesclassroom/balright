@@ -367,6 +367,7 @@ cursor: pointer;
 <div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
 <div class="admin-section-title">Site Maintenance</div>
 <div class="admin-helper-text">When on, only owners can log in.</div>
+<input type="text" id="admin-maintenance-message" maxlength="160" placeholder="Custom message (e.g. Back at 3pm!)" />
 <div class="admin-button-row" style="grid-template-columns:repeat(2,minmax(0,1fr));">
 <button onclick="adminSetMaintenance(true)" class="admin-btn admin-btn--danger">Enable</button>
 <button onclick="adminSetMaintenance(false)" class="admin-btn admin-btn--success">Disable</button>
