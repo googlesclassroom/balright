@@ -443,7 +443,17 @@ function hideSiteLoginModal() {
   setDocumentScrollLock(false);
 }
 
-const MAINTENANCE_MODE = false; // set true to block all non-owner logins
+let MAINTENANCE_MODE = false;
+
+(async function loadSiteConfig() {
+  try {
+    const doc = await getAdminDb().collection('site_config').doc('settings').get();
+    if (doc.exists) {
+      const d = doc.data();
+      if (typeof d.maintenanceMode === 'boolean') MAINTENANCE_MODE = d.maintenanceMode;
+    }
+  } catch (_) {}
+})();
 
 function siteLoginSubmit() {
   const usernameInput = document.getElementById('site-login-username');
@@ -7919,6 +7929,8 @@ loadAdminMaintenanceTasks();
 ensureAdminMaintenanceMonitor();
 loadAdminImpersonationVisibility();
 loadAdminCasinoGameSettings();
+const bridgeInput = document.getElementById('admin-bridge-url-input');
+if (bridgeInput) bridgeInput.value = BRIDGE_URL || '';
 document.getElementById('admin-menu').style.display = 'flex';
 }
 function closeAdminMenu() {
@@ -24039,6 +24051,36 @@ const backgroundNote = draft.themeMode === 'limited-background' && draft.limited
   ? `<div class="admin-event-background-preview" style="${backgroundStyleText}"></div>`
   : '<div style="font-size:0.78rem; color:#90a4ae;">No profile background preview</div>';
 preview.innerHTML = `<div style="display:grid; gap:0.55rem;"><div style="font-weight:700; color:${escapeHtml(draft.accent)};">${escapeHtml(draft.title)}</div><div style="font-size:0.82rem; color:#c8d6e5;">${escapeHtml(getSiteEventSummaryText(draft) || 'Limited-time event')}</div><div style="font-size:0.76rem; color:#90a4ae;">${escapeHtml(themeNote || 'Standard event banner')}</div><div>${tagMarkup}</div>${backgroundNote}</div>`;
+}
+
+async function adminSetMaintenance(enabled) {
+if (!canUseAdminPermission('manageSettings') || getUserRole(currentChatUser) !== 'owner') return;
+const status = document.getElementById('admin-maintenance-status');
+try {
+  await getAdminDb().collection('site_config').doc('settings').set({ maintenanceMode: enabled }, { merge: true });
+  MAINTENANCE_MODE = enabled;
+  if (status) status.textContent = enabled ? 'Maintenance mode ON.' : 'Maintenance mode OFF.';
+} catch (err) {
+  if (status) status.textContent = `Error: ${err.message}`;
+}
+}
+
+async function adminSaveBridgeUrl() {
+if (!canUseAdminPermission('manageSettings') || getUserRole(currentChatUser) !== 'owner') return;
+const input = document.getElementById('admin-bridge-url-input');
+const status = document.getElementById('admin-bridge-url-status');
+const url = String(input ? input.value : '').trim().replace(/\/$/, '');
+if (!url || !/^https?:\/\//i.test(url)) {
+  if (status) status.textContent = 'Enter a valid https URL.';
+  return;
+}
+try {
+  await getAdminDb().collection('site_config').doc('bridge').set({ url }, { merge: true });
+  BRIDGE_URL = url;
+  if (status) status.textContent = 'Bridge URL saved.';
+} catch (err) {
+  if (status) status.textContent = `Error: ${err.message}`;
+}
 }
 
 async function adminSaveEventMode() {

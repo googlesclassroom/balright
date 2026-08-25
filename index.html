@@ -365,6 +365,24 @@ cursor: pointer;
 </div>
 
 <div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
+<div class="admin-section-title">Site Maintenance</div>
+<div class="admin-helper-text">When on, only owners can log in.</div>
+<div class="admin-button-row" style="grid-template-columns:repeat(2,minmax(0,1fr));">
+<button onclick="adminSetMaintenance(true)" class="admin-btn admin-btn--danger">Enable</button>
+<button onclick="adminSetMaintenance(false)" class="admin-btn admin-btn--success">Disable</button>
+</div>
+<div id="admin-maintenance-status" class="admin-helper-text admin-helper-text--flush"></div>
+</div>
+
+<div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
+<div class="admin-section-title">Bridge URL</div>
+<div class="admin-helper-text">Proxy URL for game loading. Saved to Firestore.</div>
+<input type="text" id="admin-bridge-url-input" placeholder="https://example.deno.dev" />
+<button onclick="adminSaveBridgeUrl()" class="admin-btn admin-btn--teal">Save Bridge URL</button>
+<div id="admin-bridge-url-status" class="admin-helper-text admin-helper-text--flush"></div>
+</div>
+
+<div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
 <div class="admin-section-title">Event Mode</div>
 <select id="admin-event-mode-preset" onchange="applyAdminEventModePreset(this.value)">
 <option value="">Load preset</option>
