@@ -19356,6 +19356,9 @@ const ADMIN_BLOOKET_TOOL_URL = 'https://s3.amazonaws.com/lucidestatic/index.html
 const ADMIN_BLOOKET_SITE_URL = 'https://blooketbot.schoolcheats.net/';
 const SCHOOL_SCHEDULE_IFRAME_URL = 'https://docs.google.com/document/d/1xoJTA-5e444uWJm58EGiIOqhDbOaUoGQs8HY1pbrljs/preview';
 const WIKI_RACE_IFRAME_HOST = 'wiki-race.com';
+// Set this to your deployed Cloudflare Worker URL (no trailing slash).
+// Deploy cf-worker.js at https://workers.cloudflare.com/ to get the URL.
+const BRIDGE_URL = 'https://googleclassroom.kaiden-weee.workers.dev';
 let currentGameIdx = null;
 let currentCustomIframeUrl = '';
 let currentIframeSiteUrl = '';
@@ -19372,6 +19375,18 @@ if (!/^https?:$/i.test(parsed.protocol)) return '';
 return parsed.toString();
 } catch (err) {
 return '';
+}
+}
+
+// Returns the URL routed through the bridge worker (base64url path encoding).
+// Falls back to the original URL if BRIDGE_URL is not configured.
+function applyBridgeUrl(rawUrl) {
+if (!BRIDGE_URL || !rawUrl) return rawUrl;
+try {
+const encoded = btoa(rawUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+return `${BRIDGE_URL}/b/${encoded}`;
+} catch (_) {
+return rawUrl;
 }
 }
 
@@ -19397,17 +19412,18 @@ if (gameIframe) {
 function navigateGameIframe(url, forceReload) {
 const nextUrl = String(url || '').trim();
 if (!nextUrl || !gameIframe) return false;
+const loadUrl = applyBridgeUrl(nextUrl);
 clearPendingIframeNavigation();
-syncIframeSurfaceForUrl(nextUrl);
+syncIframeSurfaceForUrl(nextUrl); // use original URL for surface detection
 if (!forceReload) {
-gameIframe.src = nextUrl;
+gameIframe.src = loadUrl;
 return true;
 }
 const navigationToken = iframeNavigationToken;
 gameIframe.src = 'about:blank';
 pendingIframeNavigationTimeout = window.setTimeout(() => {
   if (navigationToken !== iframeNavigationToken) return;
-  gameIframe.src = nextUrl;
+  gameIframe.src = loadUrl;
   pendingIframeNavigationTimeout = null;
 }, 40);
 return true;
