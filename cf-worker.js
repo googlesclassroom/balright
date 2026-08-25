@@ -101,13 +101,7 @@ function rewriteCss(css, targetUrl, workerOrigin) {
   });
 }
 
-addEventListener('fetch', (event) => {
-  event.respondWith(handleRequest(event.request));
-});
-
-if (typeof Deno !== 'undefined') {
-  Deno.serve((request) => handleRequest(request));
-}
+Deno.serve((request) => handleRequest(request));
 
 async function handleRequest(request) {
     const reqUrl = new URL(request.url);

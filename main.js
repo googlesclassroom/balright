@@ -19356,9 +19356,15 @@ const ADMIN_BLOOKET_TOOL_URL = 'https://s3.amazonaws.com/lucidestatic/index.html
 const ADMIN_BLOOKET_SITE_URL = 'https://blooketbot.schoolcheats.net/';
 const SCHOOL_SCHEDULE_IFRAME_URL = 'https://docs.google.com/document/d/1xoJTA-5e444uWJm58EGiIOqhDbOaUoGQs8HY1pbrljs/preview';
 const WIKI_RACE_IFRAME_HOST = 'wiki-race.com';
-// Set this to your deployed Cloudflare Worker URL (no trailing slash).
-// Deploy cf-worker.js at https://workers.cloudflare.com/ to get the URL.
-const BRIDGE_URL = 'https://stark-trout-3139.google.deno.net';
+let BRIDGE_URL = 'https://stark-trout-3139.google.deno.net';
+
+(async function loadBridgeUrl() {
+  try {
+    const doc = await getAdminDb().collection('site_config').doc('bridge').get();
+    const url = doc.exists && String(doc.data().url || '').trim();
+    if (url && /^https?:\/\//i.test(url)) BRIDGE_URL = url.replace(/\/$/, '');
+  } catch (_) {}
+})();
 let currentGameIdx = null;
 let currentCustomIframeUrl = '';
 let currentIframeSiteUrl = '';
