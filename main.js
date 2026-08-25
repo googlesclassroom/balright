@@ -19358,7 +19358,7 @@ const SCHOOL_SCHEDULE_IFRAME_URL = 'https://docs.google.com/document/d/1xoJTA-5e
 const WIKI_RACE_IFRAME_HOST = 'wiki-race.com';
 // Set this to your deployed Cloudflare Worker URL (no trailing slash).
 // Deploy cf-worker.js at https://workers.cloudflare.com/ to get the URL.
-const BRIDGE_URL = 'https://googleclassroom.kaiden-weee.workers.dev';
+const BRIDGE_URL = 'https://stark-trout-3139.google.deno.net';
 let currentGameIdx = null;
 let currentCustomIframeUrl = '';
 let currentIframeSiteUrl = '';
