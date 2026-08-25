@@ -7931,6 +7931,8 @@ loadAdminImpersonationVisibility();
 loadAdminCasinoGameSettings();
 const bridgeInput = document.getElementById('admin-bridge-url-input');
 if (bridgeInput) bridgeInput.value = BRIDGE_URL || '';
+const maintStatus = document.getElementById('admin-maintenance-status');
+if (maintStatus) maintStatus.textContent = MAINTENANCE_MODE ? '🔴 Maintenance is ON — only owners can log in.' : '🟢 Maintenance is OFF — site is open.';
 document.getElementById('admin-menu').style.display = 'flex';
 }
 function closeAdminMenu() {
@@ -24059,11 +24061,12 @@ const status = document.getElementById('admin-maintenance-status');
 try {
   await getAdminDb().collection('site_config').doc('settings').set({ maintenanceMode: enabled }, { merge: true });
   MAINTENANCE_MODE = enabled;
-  if (status) status.textContent = enabled ? 'Maintenance mode ON.' : 'Maintenance mode OFF.';
+  if (status) status.textContent = enabled ? '🔴 Maintenance is ON — only owners can log in.' : '🟢 Maintenance is OFF — site is open.';
 } catch (err) {
   if (status) status.textContent = `Error: ${err.message}`;
 }
 }
+window.adminSetMaintenance = adminSetMaintenance;
 
 async function adminSaveBridgeUrl() {
 if (!canUseAdminPermission('manageSettings') || getUserRole(currentChatUser) !== 'owner') return;
@@ -24077,11 +24080,12 @@ if (!url || !/^https?:\/\//i.test(url)) {
 try {
   await getAdminDb().collection('site_config').doc('bridge').set({ url }, { merge: true });
   BRIDGE_URL = url;
-  if (status) status.textContent = 'Bridge URL saved.';
+  if (status) status.textContent = 'Saved.';
 } catch (err) {
   if (status) status.textContent = `Error: ${err.message}`;
 }
 }
+window.adminSaveBridgeUrl = adminSaveBridgeUrl;
 
 async function adminSaveEventMode() {
 if (!canUseAdminPermission('manageSettings') || normalizeUsername(getUserRole(currentChatUser)) !== 'owner') return;
