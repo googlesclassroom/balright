@@ -443,6 +443,8 @@ function hideSiteLoginModal() {
   setDocumentScrollLock(false);
 }
 
+const MAINTENANCE_MODE = false; // set true to block all non-owner logins
+
 function siteLoginSubmit() {
   const usernameInput = document.getElementById('site-login-username');
   const passwordInput = document.getElementById('site-login-password');
@@ -452,6 +454,11 @@ function siteLoginSubmit() {
   setSiteLoginError('');
   if (!username || !password) {
     setSiteLoginError('Enter your username and password.');
+    return;
+  }
+
+  if (MAINTENANCE_MODE && !isProtectedUsername(username) && getUserRole(username) !== 'owner') {
+    setSiteLoginError('The site is currently under maintenance. Check back soon.');
     return;
   }
 
