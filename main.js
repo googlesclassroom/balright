@@ -19518,6 +19518,17 @@ if (!url) return;
 window.open(url, '_blank', 'noopener,noreferrer');
 }
 
+function openProxyUrlInSite() {
+const input = document.getElementById('proxy-url-input');
+if (!input) return;
+let raw = input.value.trim();
+if (!raw) return;
+if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
+const proxied = applyBridgeUrl(raw);
+if (openCustomUrlInIframe(proxied)) input.value = '';
+}
+window.openProxyUrlInSite = openProxyUrlInSite;
+
 function hardRefreshGame() {
 const url = getCurrentIframeUrl();
 if (!url) return;

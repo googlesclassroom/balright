@@ -1,3 +1,59 @@
+.proxy-browser-section {
+  margin-bottom: 1.1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.85rem;
+  background: rgba(10, 15, 28, 0.82);
+  border: 1px solid rgba(55, 97, 255, 0.38);
+}
+
+.proxy-browser-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4d7dff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+.proxy-browser-row {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.proxy-browser-input {
+  flex: 1;
+  padding: 0.72rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(39, 48, 68, 0.98);
+  background: rgba(3, 5, 10, 0.92);
+  color: #f5f7fb;
+  font-size: 0.9rem;
+  outline: none;
+  min-width: 0;
+  transition: border-color 0.2s;
+}
+
+.proxy-browser-input:focus {
+  border-color: rgba(69, 113, 255, 0.95);
+  box-shadow: 0 0 0 1px rgba(69, 113, 255, 0.18);
+}
+
+.proxy-browser-input::placeholder { color: #566174; }
+
+.proxy-browser-btn {
+  padding: 0.72rem 1.2rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(180deg, #4f83ff 0%, #3c68ea 100%);
+  border: 1px solid rgba(100, 141, 255, 0.95);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.proxy-browser-btn:hover { filter: brightness(1.1); }
+
 body {
 background:
 radial-gradient(circle at top left, rgba(53, 102, 255, 0.18), transparent 24%),

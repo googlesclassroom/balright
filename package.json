@@ -1,0 +1,7 @@
+{
+  "name": "balright-proxy",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node proxy-server.js"
+  }
+}
