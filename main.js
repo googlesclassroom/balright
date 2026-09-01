@@ -19611,7 +19611,8 @@ if (!nextUrl) {
 if (status) status.textContent = 'Enter a valid http or https URL.';
 return;
 }
-if (!openCustomUrlInIframe(nextUrl)) {
+const proxied = applyBridgeUrl(nextUrl);
+if (!openCustomUrlInIframe(proxied)) {
 if (status) status.textContent = 'Could not open that URL.';
 return;
 }
@@ -24769,6 +24770,67 @@ document.body.removeChild(link);
 setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 }
 
+async function fetchChatExportDocs() {
+  const roomId = normalizeUsername(document.getElementById('admin-export-room-id')?.value || '') || 'general';
+  const limit = Math.min(2000, Math.max(1, parseInt(document.getElementById('admin-export-limit')?.value || '500', 10) || 500));
+  const status = document.getElementById('admin-export-status');
+  if (!canUseAdminPermission('viewArchives')) { if (status) status.textContent = 'Insufficient permissions.'; return null; }
+  if (status) status.textContent = 'Loading...';
+  try {
+    const snap = await getPrimaryDb().collection('site_messages')
+      .where('room', '==', roomId)
+      .orderBy('timestamp', 'desc')
+      .limit(limit)
+      .get();
+    if (status) status.textContent = `${snap.docs.length} messages fetched.`;
+    return { docs: snap.docs, roomId };
+  } catch (err) {
+    if (status) status.textContent = `Error: ${err.message}`;
+    return null;
+  }
+}
+
+async function adminExportChatTxt() {
+  const result = await fetchChatExportDocs();
+  if (!result) return;
+  const { docs, roomId } = result;
+  const lines = docs.slice().reverse().map((doc) => {
+    const d = doc.data() || {};
+    const time = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleString() : '';
+    const user = sanitizeNullableText(d.username, '?');
+    const msg = sanitizeNullableText(d.message, '').replace(/\n/g, ' ');
+    return `[${time}] ${user}: ${msg}`;
+  });
+  const filename = `chat-${roomId}-${new Date().toISOString().slice(0,10)}.txt`;
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+async function adminExportChatJson() {
+  const result = await fetchChatExportDocs();
+  if (!result) return;
+  const { docs, roomId } = result;
+  const messages = docs.slice().reverse().map((doc) => {
+    const d = doc.data() || {};
+    return {
+      id: doc.id,
+      username: sanitizeNullableText(d.username, ''),
+      message: sanitizeNullableText(d.message, ''),
+      room: sanitizeNullableText(d.room, roomId),
+      timestamp: d.timestamp?.toDate ? d.timestamp.toDate().toISOString() : null,
+    };
+  });
+  const filename = `chat-${roomId}-${new Date().toISOString().slice(0,10)}.json`;
+  downloadAdminExportFile(filename, JSON.stringify({ room: roomId, exportedAt: new Date().toISOString(), messages }, null, 2));
+}
+
+window.adminExportChatTxt = adminExportChatTxt;
+window.adminExportChatJson = adminExportChatJson;
+
 function renderAdminExportPreview(bundle) {
 const container = document.getElementById('admin-export-preview');
 if (!container) return;
@@ -27539,6 +27601,153 @@ if (statusDiv) statusDiv.textContent = 'Announcement cleared.';
 alert('Failed to clear announcement.');
 }
 }
+
+const BANNERS_DOC_ID = 'site_banners';
+
+function renderLoginBanner() {
+  const el = document.getElementById('login-screen-banner');
+  if (!el) return;
+  const data = window._loginBannerData || {};
+  const text = sanitizeNullableText(data.text, '');
+  const endsAt = data.endsAtMs ? Number(data.endsAtMs) : 0;
+  const active = text && (!endsAt || endsAt > Date.now());
+  if (!active) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = 'block';
+  el.style.background = data.color || '#1565c0';
+  el.style.border = `1px solid ${data.color || '#1565c0'}`;
+  el.style.color = '#fff';
+  el.textContent = text;
+}
+
+function renderHomeBanner() {
+  const el = document.getElementById('site-announcement-banner');
+  if (!el) return;
+  const data = window._homeBannerData || {};
+  const text = sanitizeNullableText(data.text, '');
+  const endsAt = data.endsAtMs ? Number(data.endsAtMs) : 0;
+  const active = text && (!endsAt || endsAt > Date.now());
+  if (!active) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.style.display = 'block';
+  el.style.background = data.color || '#1f5f2d';
+  el.style.borderColor = data.color || '#1f5f2d';
+  el.style.color = '#fff';
+  el.textContent = text;
+}
+
+(function loadSiteBanners() {
+  try {
+    getAdminDb().collection('chat_meta').doc(BANNERS_DOC_ID).onSnapshot((doc) => {
+      const data = doc.exists ? (doc.data() || {}) : {};
+      window._homeBannerData = data.home || {};
+      window._loginBannerData = data.login || {};
+      renderHomeBanner();
+      renderLoginBanner();
+    });
+  } catch (_) {}
+})();
+
+async function adminSaveHomeBanner() {
+  if (!canUseAdminPermission('manageSettings')) return;
+  const text = sanitizeNullableText(document.getElementById('admin-home-banner-text')?.value, '').slice(0, 300);
+  const color = document.getElementById('admin-home-banner-color')?.value || '#1f5f2d';
+  const mins = Math.max(0, parseInt(document.getElementById('admin-home-banner-mins')?.value || '60', 10) || 0);
+  const endsAtMs = mins ? Date.now() + mins * 60000 : 0;
+  const status = document.getElementById('admin-banner-status');
+  try {
+    await getAdminDb().collection('chat_meta').doc(BANNERS_DOC_ID).set({ home: { text, color, endsAtMs } }, { merge: true });
+    if (status) status.textContent = 'Home banner saved.';
+  } catch { if (status) status.textContent = 'Failed to save.'; }
+}
+
+async function adminClearHomeBanner() {
+  if (!canUseAdminPermission('manageSettings')) return;
+  const status = document.getElementById('admin-banner-status');
+  try {
+    await getAdminDb().collection('chat_meta').doc(BANNERS_DOC_ID).set({ home: { text: '', color: '', endsAtMs: 0 } }, { merge: true });
+    if (status) status.textContent = 'Home banner cleared.';
+  } catch { if (status) status.textContent = 'Failed to clear.'; }
+}
+
+async function adminSaveLoginBanner() {
+  if (!canUseAdminPermission('manageSettings')) return;
+  const text = sanitizeNullableText(document.getElementById('admin-login-banner-text')?.value, '').slice(0, 300);
+  const color = document.getElementById('admin-login-banner-color')?.value || '#1565c0';
+  const mins = Math.max(0, parseInt(document.getElementById('admin-login-banner-mins')?.value || '60', 10) || 0);
+  const endsAtMs = mins ? Date.now() + mins * 60000 : 0;
+  const status = document.getElementById('admin-banner-status');
+  try {
+    await getAdminDb().collection('chat_meta').doc(BANNERS_DOC_ID).set({ login: { text, color, endsAtMs } }, { merge: true });
+    if (status) status.textContent = 'Login banner saved.';
+  } catch { if (status) status.textContent = 'Failed to save.'; }
+}
+
+async function adminClearLoginBanner() {
+  if (!canUseAdminPermission('manageSettings')) return;
+  const status = document.getElementById('admin-banner-status');
+  try {
+    await getAdminDb().collection('chat_meta').doc(BANNERS_DOC_ID).set({ login: { text: '', color: '', endsAtMs: 0 } }, { merge: true });
+    if (status) status.textContent = 'Login banner cleared.';
+  } catch { if (status) status.textContent = 'Failed to clear.'; }
+}
+
+window.adminSaveHomeBanner = adminSaveHomeBanner;
+window.adminClearHomeBanner = adminClearHomeBanner;
+window.adminSaveLoginBanner = adminSaveLoginBanner;
+window.adminClearLoginBanner = adminClearLoginBanner;
+
+async function adminLoadDMMonitor() {
+  const container = document.getElementById('admin-dm-monitor-list');
+  const status = document.getElementById('admin-dm-monitor-status');
+  if (!container || !canUseAdminPermission('assignRoles')) {
+    if (status) status.textContent = 'Owner only.';
+    return;
+  }
+  const filterUser = normalizeUsername(document.getElementById('admin-dm-monitor-user')?.value || '');
+  if (status) status.textContent = 'Loading...';
+  container.innerHTML = '';
+  try {
+    const db = getAdminDb();
+    let query = db.collection(DM_MESSAGES_COLLECTION).orderBy('sentAtMs', 'desc').limit(200);
+    if (filterUser) {
+      // Firestore can't OR-filter, so load both sides and merge
+      const [fromSnap, toSnap] = await Promise.all([
+        db.collection(DM_MESSAGES_COLLECTION).where('from', '==', filterUser).orderBy('sentAtMs', 'desc').limit(100).get(),
+        db.collection(DM_MESSAGES_COLLECTION).where('to', '==', filterUser).orderBy('sentAtMs', 'desc').limit(100).get(),
+      ]);
+      const seen = new Set();
+      const docs = [];
+      fromSnap.docs.concat(toSnap.docs).forEach((d) => { if (!seen.has(d.id)) { seen.add(d.id); docs.push(d); } });
+      docs.sort((a, b) => (b.data().sentAtMs || 0) - (a.data().sentAtMs || 0));
+      renderDMMonitorResults(docs, container, status);
+      return;
+    }
+    const snap = await query.get();
+    renderDMMonitorResults(snap.docs, container, status);
+  } catch (err) {
+    if (status) status.textContent = `Error: ${err.message}`;
+  }
+}
+
+function renderDMMonitorResults(docs, container, status) {
+  if (!docs.length) { if (status) status.textContent = 'No messages found.'; return; }
+  if (status) status.textContent = `${docs.length} message${docs.length === 1 ? '' : 's'} loaded.`;
+  container.innerHTML = docs.map((doc) => {
+    const d = doc.data() || {};
+    const from = escapeHtml(sanitizeNullableText(d.from, '?'));
+    const to = escapeHtml(sanitizeNullableText(d.to, '?'));
+    const msg = escapeHtml(sanitizeNullableText(d.message, '').slice(0, 500));
+    const time = d.sentAtMs ? new Date(d.sentAtMs).toLocaleString() : '';
+    return `<div class="admin-compact-card" style="font-size:0.8rem; margin-bottom:0.4rem;">
+      <div style="display:flex; justify-content:space-between; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.2rem;">
+        <span><strong>${from}</strong> → <strong>${to}</strong></span>
+        <span style="color:#71809b;">${escapeHtml(time)}</span>
+      </div>
+      <div style="color:#dce7f5;">${msg || '<em style="color:#566174">No text</em>'}</div>
+    </div>`;
+  }).join('');
+}
+
+window.adminLoadDMMonitor = adminLoadDMMonitor;
 
 async function adminSetSiteEvent() {
 if (!canUseAdminPermission('manageSettings')) return;

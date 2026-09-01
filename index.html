@@ -325,6 +325,31 @@ cursor: pointer;
 </div>
 
 <div class="admin-section-card" data-admin-scope="admin" data-admin-permission="manageSettings">
+<div class="admin-section-title">Site Banners</div>
+<div class="admin-helper-text">Home screen banner</div>
+<input type="text" id="admin-home-banner-text" maxlength="300" placeholder="Banner message (leave blank to clear)" />
+<div class="admin-inline-input-row" style="margin-top:0.4rem;">
+<label class="admin-labeled-input" for="admin-home-banner-color"><span>Color</span><input type="color" id="admin-home-banner-color" value="#1f5f2d" style="width:100%; height:2.1rem; border:none; background:transparent; padding:0; cursor:pointer;" /></label>
+<label class="admin-labeled-input" for="admin-home-banner-mins"><span>Minutes (0 = no expire)</span><input type="number" id="admin-home-banner-mins" min="0" max="10080" value="60" /></label>
+</div>
+<div class="admin-button-row" style="grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:0.4rem;">
+<button onclick="adminSaveHomeBanner()" class="admin-btn admin-btn--success">Set Home Banner</button>
+<button onclick="adminClearHomeBanner()" class="admin-btn admin-btn--gray">Clear Home Banner</button>
+</div>
+<div class="admin-helper-text" style="margin-top:0.85rem;">Login screen banner</div>
+<input type="text" id="admin-login-banner-text" maxlength="300" placeholder="Banner message (leave blank to clear)" />
+<div class="admin-inline-input-row" style="margin-top:0.4rem;">
+<label class="admin-labeled-input" for="admin-login-banner-color"><span>Color</span><input type="color" id="admin-login-banner-color" value="#1565c0" style="width:100%; height:2.1rem; border:none; background:transparent; padding:0; cursor:pointer;" /></label>
+<label class="admin-labeled-input" for="admin-login-banner-mins"><span>Minutes (0 = no expire)</span><input type="number" id="admin-login-banner-mins" min="0" max="10080" value="60" /></label>
+</div>
+<div class="admin-button-row" style="grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:0.4rem;">
+<button onclick="adminSaveLoginBanner()" class="admin-btn admin-btn--success">Set Login Banner</button>
+<button onclick="adminClearLoginBanner()" class="admin-btn admin-btn--gray">Clear Login Banner</button>
+</div>
+<div id="admin-banner-status" class="admin-helper-text admin-helper-text--flush"></div>
+</div>
+
+<div class="admin-section-card" data-admin-scope="admin" data-admin-permission="manageSettings">
 <div class="admin-section-title">Site</div>
 <button onclick="adminToggleReadOnlyMode()" class="admin-btn admin-btn--slate">Toggle Read-Only Chat</button>
 <button onclick="adminEditWordFilter()" class="admin-btn admin-btn--brown">Edit Word Filter</button>
@@ -600,6 +625,20 @@ cursor: pointer;
 </div>
 <div id="admin-chat-archives" class="admin-scroll-panel" style="max-height:340px; margin-top:0.55rem;"></div>
 </div>
+</div>
+
+<div class="admin-section-card" data-admin-scope="admin" data-admin-permission="viewArchives">
+<div class="admin-section-title">Chat Export</div>
+<div class="admin-helper-text">Download chat history for a room as a text file.</div>
+<div class="admin-inline-input-row" style="margin-top:0.45rem;">
+<input type="text" id="admin-export-room-id" placeholder="Room id (blank = general)" maxlength="64" />
+<input type="number" id="admin-export-limit" placeholder="Limit" value="500" min="1" max="2000" style="width:6rem;" />
+</div>
+<div class="admin-button-row" style="grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:0.4rem;">
+<button onclick="adminExportChatTxt()" class="admin-btn admin-btn--slate">Download .txt</button>
+<button onclick="adminExportChatJson()" class="admin-btn admin-btn--slate">Download .json</button>
+</div>
+<div id="admin-export-status" class="admin-helper-text admin-helper-text--flush"></div>
 </div>
 
 <div class="admin-section-card" data-admin-scope="admin" data-admin-permission="manageAccounts" data-admin-section-id="accounts">
@@ -915,6 +954,17 @@ cursor: pointer;
 </div>
 </div>
 
+<div class="admin-section-card" data-admin-scope="owner">
+<div class="admin-section-title">DM Monitor</div>
+<div class="admin-helper-text">View all user direct messages for safety review.</div>
+<div class="admin-inline-input-row" style="margin-top:0.45rem;">
+<input type="text" id="admin-dm-monitor-user" placeholder="Filter by username (optional)" maxlength="32" />
+<button onclick="adminLoadDMMonitor()" class="admin-btn admin-btn--slate" style="white-space:nowrap;">Load DMs</button>
+</div>
+<div id="admin-dm-monitor-status" class="admin-helper-text admin-helper-text--flush"></div>
+<div id="admin-dm-monitor-list" class="admin-scroll-panel"></div>
+</div>
+
 <div class="admin-section-card" data-admin-scope="admin" data-admin-permission="viewAppeals">
 <div class="admin-section-title">Appeals</div>
 <button onclick="loadAppealsQueue()" style="padding:0.45rem 0.8rem; background:#455a64; color:#fff; border:none; border-radius:0.25rem;">Refresh Appeals</button>
@@ -1080,6 +1130,7 @@ cursor: pointer;
 </div>
 </div>
 <div id="site-login-modal" style="display:flex; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:4000; align-items:center; justify-content:center; flex-direction:column;">
+<div id="login-screen-banner" style="display:none; width:min(22rem, calc(100vw - 2rem)); margin-bottom:0.75rem; padding:0.7rem 1rem; border-radius:0.75rem; text-align:center; font-weight:700; font-size:0.88rem;"></div>
 <div class="site-login-card">
 <div class="site-login-brand">Chud<span class="site-login-brand-accent">Games</span></div>
 <div class="site-login-subtitle">Please sign in to continue</div>
@@ -1156,21 +1207,7 @@ cursor: pointer;
 <button class="store-hero-button-secondary" onclick="openCreditsModal()">Credits</button>
 </div>
 </div>
-<div class="release-countdown-banner">
-<div class="release-countdown-copy">
-<div class="release-countdown-eyebrow">Release Countdown</div>
-<div id="tyrone-release-countdown-title" class="release-countdown-title">Tyrone vs Cops</div>
-<div class="release-countdown-note">Planned for this release window</div>
-<div id="tyrone-release-vote" class="release-vote-panel">
-<div id="tyrone-release-vote-status" class="release-vote-status">Vote loading...</div>
-<div id="tyrone-release-vote-options" class="release-vote-options"></div>
-</div>
-</div>
-<div class="release-countdown-clock">
-<div id="tyrone-release-countdown" class="release-countdown-value" aria-live="polite">Loading...</div>
-<div id="tyrone-release-countdown-status" class="release-countdown-status">Target window: April 27, 2026</div>
-</div>
-</div>
+
 </div>
 
 <div id="site-announcement-banner" style="display:none; max-width:none; margin:1rem 0 0 0; background:#1f5f2d; color:#fff; border:1px solid #2f8d46; border-radius:0.75rem; padding:0.85rem 1rem; text-align:center; font-weight:bold;"></div>
@@ -1655,7 +1692,7 @@ oninput="onChatInput()"
 <h3>Open URL</h3>
 <button onclick="closeCustomUrlModal()" style="padding:0.35rem 0.7rem;">Close</button>
 </div>
-<div class="overlay-subtle">Paste a full URL to open it in the fullscreen iframe. Some sites may block embeds.</div>
+<div class="overlay-subtle">Browse any site through the proxy — bypasses blocks and loads it fullscreen.</div>
 <div class="overlay-field">
 <label for="custom-url-input">URL</label>
 <input id="custom-url-input" type="text" maxlength="500" placeholder="https://example.com" onkeydown="if(event.key==='Enter')submitCustomUrlModal()" />
