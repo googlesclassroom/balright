@@ -19524,13 +19524,15 @@ if (!input) return;
 let raw = input.value.trim();
 if (!raw) return;
 if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
-const proxied = applyBridgeUrl(raw);
-if (openCustomUrlInIframe(proxied)) input.value = '';
+const targetUrl = normalizeIframeUrl(raw);
+if (!targetUrl) return;
+input.value = '';
+window.location.assign(applyBridgeUrl(targetUrl));
 }
 window.openProxyUrlInSite = openProxyUrlInSite;
 
 function openProxyDirect() {
-  openCustomUrlInIframe('https://studynotes.viewdns.net/');
+  window.location.assign(BRIDGE_URL);
 }
 window.openProxyDirect = openProxyDirect;
 
@@ -19616,12 +19618,8 @@ if (!nextUrl) {
 if (status) status.textContent = 'Enter a valid http or https URL.';
 return;
 }
-const proxied = applyBridgeUrl(nextUrl);
-if (!openCustomUrlInIframe(proxied)) {
-if (status) status.textContent = 'Could not open that URL.';
-return;
-}
 closeCustomUrlModal();
+window.location.assign(applyBridgeUrl(nextUrl));
 }
 
 async function adminOpenBlooketBotTool() {
