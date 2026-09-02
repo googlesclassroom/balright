@@ -214,50 +214,110 @@ function proxyPageHtml(proxyOrigin) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Balright Proxy</title>
+<title>Proxy</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{min-height:100vh;background:#05070c;color:#f5f7fb;font-family:'Bahnschrift','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
-  .card{width:min(36rem,100%);background:#000;border:1px solid rgba(55,97,255,.72);border-radius:1.15rem;padding:2rem 1.75rem;box-shadow:0 18px 60px rgba(0,0,0,.52)}
-  .brand{font-size:2rem;font-weight:800;letter-spacing:-.04em;text-align:center;margin-bottom:.35rem}
-  .brand-accent{color:#4d7dff}
-  .subtitle{color:#71809b;font-size:.82rem;text-align:center;margin-bottom:1.5rem}
-  input{width:100%;padding:.82rem .9rem;border-radius:.65rem;border:1px solid rgba(39,48,68,.98);background:rgba(3,5,10,.92);color:#f5f7fb;font-size:.9rem;outline:none;transition:border-color .2s}
-  input:focus{border-color:rgba(69,113,255,.95);box-shadow:0 0 0 1px rgba(69,113,255,.18)}
-  input::placeholder{color:#566174}
-  button{width:100%;margin-top:.8rem;padding:.82rem 1rem;border-radius:.72rem;background:linear-gradient(180deg,#4f83ff 0%,#3c68ea 100%);border:1px solid rgba(100,141,255,.95);color:#fff;font-size:.92rem;font-weight:700;cursor:pointer;box-shadow:0 10px 24px rgba(49,91,223,.28)}
-  button:hover{filter:brightness(1.1)}
-  #err{margin-top:.75rem;padding:.65rem .85rem;border-radius:.55rem;border:1px solid rgba(141,43,43,.7);background:rgba(63,15,15,.45);color:#e35f5f;font-size:.78rem;display:none}
-  .note{margin-top:1rem;color:#4a566b;font-size:.75rem;text-align:center}
+  body{min-height:100vh;background:#05070c;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;font-family:'Bahnschrift','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+  .row{display:flex;gap:.55rem;width:min(36rem,100%);}
+  input{flex:1;padding:.82rem .9rem;border-radius:.65rem;border:1px solid rgba(39,48,68,.98);background:rgba(3,5,10,.92);color:#f5f7fb;font-size:.9rem;outline:none;min-width:0;transition:border-color .2s;}
+  input:focus{border-color:rgba(69,113,255,.95);box-shadow:0 0 0 1px rgba(69,113,255,.18);}
+  input::placeholder{color:#566174;}
+  button{padding:.82rem 1.4rem;border-radius:.65rem;background:linear-gradient(180deg,#4f83ff 0%,#3c68ea 100%);border:1px solid rgba(100,141,255,.95);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+  button:hover{filter:brightness(1.1);}
+  .shortcuts{display:flex;flex-wrap:wrap;gap:.4rem;width:min(36rem,100%);margin-top:.6rem;}
+  .sc-item{display:flex;align-items:center;}
+  .shortcuts button{padding:.45rem .9rem;font-size:.8rem;font-weight:600;border-radius:.5rem;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#a0b0c8;cursor:pointer;width:auto;}
+  .shortcuts button:hover{background:rgba(255,255,255,.12);color:#fff;filter:none;}
+  .sc-remove{padding:.3rem .45rem !important;font-size:.7rem !important;background:transparent !important;border:none !important;color:#566174 !important;margin-left:1px;}
+  .sc-remove:hover{color:#e35f5f !important;}
+  .add-row{display:flex;gap:.4rem;width:min(36rem,100%);margin-top:.75rem;}
+  .add-row input{flex:1;padding:.55rem .75rem;border-radius:.55rem;border:1px solid rgba(39,48,68,.98);background:rgba(3,5,10,.92);color:#f5f7fb;font-size:.82rem;outline:none;min-width:0;}
+  .add-row input:focus{border-color:rgba(69,113,255,.6);}
+  .add-row input::placeholder{color:#566174;}
+  .add-row button{padding:.55rem .9rem;font-size:.82rem;font-weight:700;border-radius:.55rem;background:rgba(79,131,255,.18);border:1px solid rgba(79,131,255,.4);color:#7fa8ff;cursor:pointer;white-space:nowrap;}
+  .add-row button:hover{background:rgba(79,131,255,.28);}
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="brand">bal<span class="brand-accent">right</span></div>
-  <div class="subtitle">Custom Proxy &mdash; self-hosted, no third parties</div>
+<div class="row">
   <input id="url-input" type="url" placeholder="https://example.com" autocomplete="off" spellcheck="false">
   <button onclick="go()">Go</button>
-  <div id="err"></div>
-  <div class="note">Traffic routes through this server only. No external proxy services.</div>
 </div>
+<div class="shortcuts" id="shortcuts"></div>
+<div class="add-row">
+  <input id="sc-name" placeholder="Name" maxlength="20" autocomplete="off" />
+  <input id="sc-url" type="url" placeholder="https://example.com" autocomplete="off" />
+  <button onclick="addShortcut()">+ Add</button>
+</div>
+<div id="bookmark-hint" style="display:none;color:#566174;font-size:.74rem;margin-top:.5rem;width:min(36rem,100%);text-align:center;">Bookmark this page now to save your shortcuts!</div>
 <script>
   const ORIGIN = "${proxyOrigin}";
   function enc(s){
     return btoa(unescape(encodeURIComponent(s))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'');
   }
   function go(){
-    const raw = document.getElementById('url-input').value.trim();
-    const errEl = document.getElementById('err');
-    errEl.style.display='none';
-    let target = raw;
+    let target = document.getElementById('url-input').value.trim();
+    if(!target) return;
     if(!/^https?:\\/\\//i.test(target)) target = 'https://' + target;
-    try{ new URL(target); } catch(e){
-      errEl.textContent = 'Enter a valid URL (e.g. https://example.com)';
-      errEl.style.display='block'; return;
-    }
+    try{ new URL(target); } catch(e){ return; }
     window.location.href = ORIGIN + '/b/' + enc(target);
   }
+  function nav(url){ window.location.href = ORIGIN + '/b/' + enc(url); }
   document.getElementById('url-input').addEventListener('keydown', e => { if(e.key==='Enter') go(); });
+
+  const DEFAULTS = [
+    {name:'YouTube', url:'https://youtube.com'},
+    {name:'Google',  url:'https://google.com'},
+    {name:'ChatGPT', url:'https://chatgpt.com'},
+    {name:'Spotify', url:'https://spotify.com'},
+    {name:'Twitch',  url:'https://twitch.tv'},
+  ];
+
+  function loadShortcuts() {
+    try {
+      const raw = decodeURIComponent(location.hash.slice(1));
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return DEFAULTS;
+  }
+
+  function saveShortcuts(list) {
+    location.hash = encodeURIComponent(JSON.stringify(list));
+    document.getElementById('bookmark-hint').style.display = 'block';
+  }
+
+  function renderShortcuts() {
+    const list = loadShortcuts();
+    const el = document.getElementById('shortcuts');
+    el.innerHTML = list.map((s, i) => {
+      const safe = s.name.replace(/"/g,'&quot;');
+      const url = s.url.replace(/"/g,'&quot;');
+      return \`<span class="sc-item"><button onclick="nav('\${url}')">\${safe}</button><button class="sc-remove" title="Remove" onclick="removeShortcut(\${i})">✕</button></span>\`;
+    }).join('');
+  }
+
+  function addShortcut() {
+    const name = document.getElementById('sc-name').value.trim().slice(0,20);
+    let url = document.getElementById('sc-url').value.trim();
+    if(!name || !url) return;
+    if(!/^https?:\\/\\//.test(url)) url = 'https://' + url;
+    try { new URL(url); } catch { return; }
+    const list = loadShortcuts();
+    list.push({name, url});
+    saveShortcuts(list);
+    document.getElementById('sc-name').value = '';
+    document.getElementById('sc-url').value = '';
+    renderShortcuts();
+  }
+
+  function removeShortcut(i) {
+    const list = loadShortcuts();
+    list.splice(i, 1);
+    saveShortcuts(list);
+    renderShortcuts();
+  }
+
+  renderShortcuts();
 </script>
 </body>
 </html>`;

@@ -19381,7 +19381,7 @@ const ADMIN_BLOOKET_TOOL_URL = 'https://s3.amazonaws.com/lucidestatic/index.html
 const ADMIN_BLOOKET_SITE_URL = 'https://blooketbot.schoolcheats.net/';
 const SCHOOL_SCHEDULE_IFRAME_URL = 'https://docs.google.com/document/d/1xoJTA-5e444uWJm58EGiIOqhDbOaUoGQs8HY1pbrljs/preview';
 const WIKI_RACE_IFRAME_HOST = 'wiki-race.com';
-let BRIDGE_URL = 'https://stark-trout-3139.google.deno.net';
+let BRIDGE_URL = 'https://studynotes.viewdns.net';
 
 (async function loadBridgeUrl() {
   try {
@@ -19528,6 +19528,11 @@ const proxied = applyBridgeUrl(raw);
 if (openCustomUrlInIframe(proxied)) input.value = '';
 }
 window.openProxyUrlInSite = openProxyUrlInSite;
+
+function openProxyDirect() {
+  openCustomUrlInIframe('https://studynotes.viewdns.net/');
+}
+window.openProxyDirect = openProxyDirect;
 
 function hardRefreshGame() {
 const url = getCurrentIframeUrl();
