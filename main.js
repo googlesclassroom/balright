@@ -7931,8 +7931,6 @@ loadAdminMaintenanceTasks();
 ensureAdminMaintenanceMonitor();
 loadAdminImpersonationVisibility();
 loadAdminCasinoGameSettings();
-const bridgeInput = document.getElementById('admin-bridge-url-input');
-if (bridgeInput) bridgeInput.value = BRIDGE_URL || '';
 const maintMsgInput = document.getElementById('admin-maintenance-message');
 if (maintMsgInput) maintMsgInput.value = MAINTENANCE_MESSAGE || '';
 const maintStatus = document.getElementById('admin-maintenance-status');
@@ -19381,15 +19379,6 @@ const ADMIN_BLOOKET_TOOL_URL = 'https://s3.amazonaws.com/lucidestatic/index.html
 const ADMIN_BLOOKET_SITE_URL = 'https://blooketbot.schoolcheats.net/';
 const SCHOOL_SCHEDULE_IFRAME_URL = 'https://docs.google.com/document/d/1xoJTA-5e444uWJm58EGiIOqhDbOaUoGQs8HY1pbrljs/preview';
 const WIKI_RACE_IFRAME_HOST = 'wiki-race.com';
-let BRIDGE_URL = 'https://studynotes.viewdns.net';
-
-(async function loadBridgeUrl() {
-  try {
-    const doc = await getAdminDb().collection('site_config').doc('bridge').get();
-    const url = doc.exists && String(doc.data().url || '').trim();
-    if (url && /^https?:\/\//i.test(url)) BRIDGE_URL = url.replace(/\/$/, '');
-  } catch (_) {}
-})();
 let currentGameIdx = null;
 let currentCustomIframeUrl = '';
 let currentIframeSiteUrl = '';
@@ -19406,18 +19395,6 @@ if (!/^https?:$/i.test(parsed.protocol)) return '';
 return parsed.toString();
 } catch (err) {
 return '';
-}
-}
-
-// Returns the URL routed through the bridge worker (base64url path encoding).
-// Falls back to the original URL if BRIDGE_URL is not configured.
-function applyBridgeUrl(rawUrl) {
-if (!BRIDGE_URL || !rawUrl) return rawUrl;
-try {
-const encoded = btoa(rawUrl).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-return `${BRIDGE_URL}/b/${encoded}`;
-} catch (_) {
-return rawUrl;
 }
 }
 
@@ -19443,7 +19420,7 @@ if (gameIframe) {
 function navigateGameIframe(url, forceReload) {
 const nextUrl = String(url || '').trim();
 if (!nextUrl || !gameIframe) return false;
-const loadUrl = applyBridgeUrl(nextUrl);
+const loadUrl = nextUrl;
 clearPendingIframeNavigation();
 syncIframeSurfaceForUrl(nextUrl); // use original URL for surface detection
 if (!forceReload) {
@@ -19517,24 +19494,6 @@ const url = getCurrentIframeUrl();
 if (!url) return;
 window.open(url, '_blank', 'noopener,noreferrer');
 }
-
-function openProxyUrlInSite() {
-const input = document.getElementById('proxy-url-input');
-if (!input) return;
-let raw = input.value.trim();
-if (!raw) return;
-if (!/^https?:\/\//i.test(raw)) raw = 'https://' + raw;
-const targetUrl = normalizeIframeUrl(raw);
-if (!targetUrl) return;
-input.value = '';
-window.location.assign(applyBridgeUrl(targetUrl));
-}
-window.openProxyUrlInSite = openProxyUrlInSite;
-
-function openProxyDirect() {
-  window.location.assign(BRIDGE_URL);
-}
-window.openProxyDirect = openProxyDirect;
 
 function hardRefreshGame() {
 const url = getCurrentIframeUrl();
@@ -19619,7 +19578,7 @@ if (status) status.textContent = 'Enter a valid http or https URL.';
 return;
 }
 closeCustomUrlModal();
-window.location.assign(applyBridgeUrl(nextUrl));
+openCustomUrlInIframe(nextUrl);
 }
 
 async function adminOpenBlooketBotTool() {
@@ -24089,25 +24048,6 @@ try {
 }
 }
 window.adminSetMaintenance = adminSetMaintenance;
-
-async function adminSaveBridgeUrl() {
-if (!canUseAdminPermission('manageSettings') || getUserRole(currentChatUser) !== 'owner') return;
-const input = document.getElementById('admin-bridge-url-input');
-const status = document.getElementById('admin-bridge-url-status');
-const url = String(input ? input.value : '').trim().replace(/\/$/, '');
-if (!url || !/^https?:\/\//i.test(url)) {
-  if (status) status.textContent = 'Enter a valid https URL.';
-  return;
-}
-try {
-  await getAdminDb().collection('site_config').doc('bridge').set({ url }, { merge: true });
-  BRIDGE_URL = url;
-  if (status) status.textContent = 'Saved.';
-} catch (err) {
-  if (status) status.textContent = `Error: ${err.message}`;
-}
-}
-window.adminSaveBridgeUrl = adminSaveBridgeUrl;
 
 async function adminSaveEventMode() {
 if (!canUseAdminPermission('manageSettings') || normalizeUsername(getUserRole(currentChatUser)) !== 'owner') return;

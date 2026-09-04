@@ -60,23 +60,68 @@ function rewriteHtml(html, targetUrl, workerOrigin) {
 
   const runtimePatch = `<script>
 (function(){
-  var W="${workerOrigin}",B="${base.origin}";
-  function enc(s){try{return btoa(s).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'')}catch(e){return s;}}
+  var W="${workerOrigin}", B="${base.origin}";
+  function enc(s){
+    try {
+      return btoa(unescape(encodeURIComponent(s))).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=/g,'');
+    } catch (e) {
+      return s;
+    }
+  }
   function rw(u){
     if(!u||typeof u!=='string')return u;
     var s=u.trim();
-    if(!s||/^(data:|blob:|javascript:|#)/.test(s))return s;
+    if(!s||/^(data:|blob:|javascript:|#|mailto:|tel:)/i.test(s))return s;
     if(s.startsWith(W))return s;
-    try{return W+'/b/'+enc(new URL(s,B).href);}catch(e){return u;}
+    try { return W + '/b/' + enc(new URL(s, B).href); } catch (e) { return u; }
   }
-  var oF=window.fetch;
-  window.fetch=function(r,o){return oF.call(this,typeof r==='string'?rw(r):r,o);};
-  var oO=XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open=function(m,u){
-    var a=Array.prototype.slice.call(arguments);
-    a[1]=rw(u);
-    return oO.apply(this,a);
-  };
+  function wrapRequest(input){
+    if (typeof input === 'string') return rw(input);
+    if (input && typeof input === 'object' && typeof input.url === 'string') {
+      var clone = new Request(rw(input.url), input);
+      return clone;
+    }
+    return input;
+  }
+  if (window.fetch) {
+    var oF = window.fetch.bind(window);
+    window.fetch = function(input, init) {
+      return oF(wrapRequest(input), init);
+    };
+  }
+  if (window.XMLHttpRequest) {
+    var oO = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function(method, url, async, user, password){
+      if (typeof url === 'string') url = rw(url);
+      return oO.call(this, method, url, async, user, password);
+    };
+  }
+  if (window.WebSocket) {
+    var OldWS = window.WebSocket;
+    window.WebSocket = function(url, protocols){
+      return new OldWS(rw(url), protocols);
+    };
+  }
+  if (window.EventSource) {
+    var OldES = window.EventSource;
+    window.EventSource = function(url, init){
+      return new OldES(rw(url), init);
+    };
+  }
+  if (window.navigator && window.navigator.sendBeacon) {
+    var oldSB = window.navigator.sendBeacon.bind(window.navigator);
+    window.navigator.sendBeacon = function(url, data){
+      return oldSB(rw(url), data);
+    };
+  }
+  try {
+    var oldAssign = window.location.assign;
+    window.location.assign = function(u){ return oldAssign.call(this, rw(u)); };
+  } catch (e) {}
+  try {
+    var oldReplace = window.location.replace;
+    window.location.replace = function(u){ return oldReplace.call(this, rw(u)); };
+  } catch (e) {}
 })();
 <\/script>`;
 

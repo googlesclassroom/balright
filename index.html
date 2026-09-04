@@ -401,14 +401,6 @@ cursor: pointer;
 </div>
 
 <div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
-<div class="admin-section-title">Bridge URL</div>
-<div class="admin-helper-text">Proxy URL for game loading. Saved to Firestore.</div>
-<input type="text" id="admin-bridge-url-input" placeholder="https://example.deno.dev" />
-<button onclick="adminSaveBridgeUrl()" class="admin-btn admin-btn--teal">Save Bridge URL</button>
-<div id="admin-bridge-url-status" class="admin-helper-text admin-helper-text--flush"></div>
-</div>
-
-<div class="admin-section-card" data-admin-scope="owner" data-admin-permission="manageSettings">
 <div class="admin-section-title">Event Mode</div>
 <select id="admin-event-mode-preset" onchange="applyAdminEventModePreset(this.value)">
 <option value="">Load preset</option>
@@ -1204,7 +1196,6 @@ cursor: pointer;
 <button onclick="openStaffWallModal()">Staff Wall</button>
 <button onclick="openSchoolScheduleInIframe()">School Schedule</button>
 <button onclick="openCustomUrlModal()">Open URL</button>
-<button onclick="openProxyDirect()">Proxy</button>
 <button class="store-hero-button-secondary" onclick="openCreditsModal()">Credits</button>
 </div>
 </div>
@@ -1225,11 +1216,6 @@ cursor: pointer;
 </div>
 </div>
 <ul id="whats-new-list" class="whats-new-list"></ul>
-</div>
-
-<div class="proxy-browser-row" style="margin-bottom:1.1rem;">
-<input type="url" id="proxy-url-input" class="proxy-browser-input" placeholder="https://example.com" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')openProxyUrlInSite()" />
-<button class="proxy-browser-btn" onclick="openProxyUrlInSite()">Go</button>
 </div>
 
 <div class="store-section-header">
@@ -1690,7 +1676,7 @@ oninput="onChatInput()"
 <h3>Open URL</h3>
 <button onclick="closeCustomUrlModal()" style="padding:0.35rem 0.7rem;">Close</button>
 </div>
-<div class="overlay-subtle">Browse any site through the proxy — bypasses blocks and loads it fullscreen.</div>
+<div class="overlay-subtle">Open a site inside the fullscreen iframe.</div>
 <div class="overlay-field">
 <label for="custom-url-input">URL</label>
 <input id="custom-url-input" type="text" maxlength="500" placeholder="https://example.com" onkeydown="if(event.key==='Enter')submitCustomUrlModal()" />
